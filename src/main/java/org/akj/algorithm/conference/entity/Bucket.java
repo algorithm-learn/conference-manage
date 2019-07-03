@@ -28,9 +28,13 @@ public class Bucket implements Cloneable, Comparable<Bucket> {
 	}
 
 	public void add(Event event) {
-		this.events.add(event);
-		this.currentCapacity += event.getDuration();
-		this.remainingCapacity = this.maxCapacity.value() - this.currentCapacity;
+		if (event.getDuration() <= this.remainingCapacity) {
+			this.events.add(event);
+			this.currentCapacity += event.getDuration();
+			this.remainingCapacity = this.maxCapacity.value() - this.currentCapacity;
+		}else {
+			throw new IllegalStateException("capacity is not enough,reject to add..");
+		}
 	}
 
 	@Override

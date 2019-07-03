@@ -10,9 +10,11 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.akj.algorithm.conference.constant.Constant;
 import org.akj.algorithm.conference.entity.Bucket;
 import org.akj.algorithm.conference.entity.BucketCapacityEnum;
 import org.akj.algorithm.conference.entity.Event;
+import org.akj.algorithm.conference.factory.BucketFactory;
 import org.akj.algorithm.conference.service.DispatcherService;
 
 import lombok.Setter;
@@ -29,7 +31,6 @@ public class Application {
 
 	public Application(DispatcherService dispatcher) {
 		this.dispatcher = dispatcher;
-
 	}
 
 	public void run(List<Event> events) {
@@ -51,15 +52,16 @@ public class Application {
 			return bucket.getMaxCapacity().value() == BucketCapacityEnum.AFTERNOON.value();
 		}).forEach(bucket -> {
 			// to add network event
-			Calendar cal = new Calendar.Builder().setTimeZone(TimeZone.getDefault()).set(Calendar.HOUR_OF_DAY, 17)
+			Calendar cal = new Calendar.Builder().setTimeZone(TimeZone.getDefault())
+					.set(Calendar.HOUR_OF_DAY, Constant.AFTERNOON_EVENT_END_HOUR_OF_DAY).build();
+			Event event = Event.builder().subject(Constant.NETWORKING_EVENT_STR).duration(0).start(cal.getTime())
 					.build();
-			Event event = Event.builder().subject("Networking Event").duration(0).start(cal.getTime()).build();
 			bucket.add(event);
 
 			// to add lunch event
-			Calendar temp = new Calendar.Builder().setTimeZone(TimeZone.getDefault()).set(Calendar.HOUR_OF_DAY, 12)
-					.build();
-			Event lunchEvent = Event.builder().subject("Lunch").duration(0).start(temp.getTime()).build();
+			Calendar temp = new Calendar.Builder().setTimeZone(TimeZone.getDefault())
+					.set(Calendar.HOUR_OF_DAY, Constant.MORNING_EVENT_END_HOUR_OF_DAY).build();
+			Event lunchEvent = Event.builder().subject(Constant.LUNCH_STR).duration(0).start(temp.getTime()).build();
 			bucket.add(lunchEvent);
 		});
 	}
@@ -74,17 +76,15 @@ public class Application {
 		int cnt = 0;
 		cnt = (int) Math
 				.ceil((double) sum / (BucketCapacityEnum.MORNING.value() + BucketCapacityEnum.AFTERNOON.value()));
-
 		if (cnt == 0) {
 			throw new IllegalStateException("illegal system state - no event bucket will be created...");
 		}
 
 		buckets = new ArrayList<Bucket>(cnt);
-
 		for (int i = 0; i < cnt; i++) {
 			String trackerID = UUID.randomUUID().toString();
-			Bucket morning = new Bucket(BucketCapacityEnum.MORNING, trackerID);
-			Bucket afternoon = new Bucket(BucketCapacityEnum.AFTERNOON, trackerID);
+			Bucket morning = BucketFactory.getBucket(BucketCapacityEnum.MORNING, trackerID);
+			Bucket afternoon = BucketFactory.getBucket(BucketCapacityEnum.AFTERNOON, trackerID);
 
 			buckets.add(morning);
 			buckets.add(afternoon);
@@ -94,22 +94,21 @@ public class Application {
 	private void print(List<Bucket> buckets) {
 		Integer cnt = 1;
 		Map<String, List<Bucket>> collect = buckets.stream().collect(Collectors.groupingBy(Bucket::getTrackerNum));
-		SimpleDateFormat formatter = new SimpleDateFormat("HH:mma");
+		SimpleDateFormat formatter = new SimpleDateFormat(Constant.DATE_OUTPUT_FORMAT);
 
 		for (String key : collect.keySet()) {
-			System.out.println("Track " + cnt++);
+			System.out.println(Constant.TRACK_STR + Constant.SPACE + cnt++);
 			collect.get(key).stream().sorted().forEach(bucket -> {
 				List<Event> events = bucket.getEvents();
 				Collections.sort(events);
 				events.stream().forEach(event -> {
 					StringBuffer buffer = new StringBuffer();
-					buffer.append(formatter.format(event.getStart())).append(" ");
-					if (event.getSubject().endsWith("lightning")) {
-						buffer.append(event.getSubject().subSequence(0, event.getSubject().lastIndexOf("lightning")));
-					}
+					buffer.append(formatter.format(event.getStart())).append(Constant.SPACE);
+					buffer.append(event.getSubject());
 
-					if (null != event.getDuration() && 0 != event.getDuration()) {
-						buffer.append(" ").append(event.getDuration()).append("min");
+					if (null != event.getDuration() && 0 != event.getDuration()
+							&& !event.getSubject().trim().endsWith(Constant.LIGHTNING_STR)) {
+						buffer.append(Constant.SPACE).append(event.getDuration()).append(Constant.MIN_STR);
 					}
 					System.out.println(buffer.toString());
 				});

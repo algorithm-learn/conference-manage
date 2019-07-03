@@ -9,19 +9,15 @@ import org.akj.algorithm.conference.entity.Event;
 public class DefaultEventDispatcherStrategy implements EventDispacherStrategy {
 
 	@Override
-	public Bucket getTargetBucket(Event event, List<Bucket> buckets) {
+	public Optional<Bucket> getTargetBucket(Event event, List<Bucket> buckets) {
 
-		// 1. check the bucket with low use ratio
-		Optional<Bucket> min = buckets.stream().min((x, y) -> x.compareTo(y));
-		if (event.getDuration() <= min.get().getRemainingCapacity())
-			return min.get();
+		Optional<Bucket> targetBucket = null;
 
-		// 2. to get a bucket using normal approach
-		Optional<Bucket> targetBucket = buckets.stream().filter(bucket -> {
-			return (bucket.getRemainingCapacity() >= event.getDuration());
-		}).findAny();
+		// 1. check the bucket with lowest use ratio
+		targetBucket = buckets.parallelStream().filter(bucket -> {
+			return (bucket.getRemainingCapacity() >= event.getDuration());}).min((x, y) -> x.compareTo(y));
 
-		return targetBucket.get();
+		return targetBucket;
 	}
 
 }

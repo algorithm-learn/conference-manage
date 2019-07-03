@@ -9,6 +9,7 @@ import java.security.InvalidParameterException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.akj.algorithm.conference.constant.Constant;
 import org.akj.algorithm.conference.entity.Event;
 import org.akj.algorithm.conference.entity.EventPriorityEnum;
 import org.akj.algorithm.conference.service.DispatcherService;
@@ -31,9 +32,9 @@ public class ApplicationTest {
 		List<String> inputs = Files.readAllLines(Paths.get(uri));
 
 		events = inputs.stream().map(item -> {
-			String[] temp = item.split(" ");
-			if (item.endsWith("lightning")) {
-				return Event.builder().subject(item).priority(EventPriorityEnum.LOW).duration(5).build();
+			String[] temp = item.split(Constant.SPACE);
+			if (item.endsWith(Constant.LIGHTNING_STR)) {
+				return Event.builder().subject(item).priority(EventPriorityEnum.LOW).duration(Constant.LIGHTNING_EVENT_DURATION).build();
 			} else {
 				String str = temp[temp.length - 1];
 				if (str.matches("\\d*min")) {
